@@ -1,16 +1,20 @@
-# rateflix
+# Rateflix
 
-A new Flutter project.
+Rateflix ist eine Flutter-App, mit der Nutzer Filme und Serien bewerten und sich Inspiration von Freunden und Bekannte holen können. 
+Zukünftig ist auch eine Funktion geplant in der mehrere Nutzer die Filme aus deren Merklisten wie bei Tinder durchswipen um sich auf einen Film/Serie zu einigen.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- Filme/Serien bewerten
+- Favoritenliste erstellen
+- Einfaches, intuitives UI
 
-A few resources to get you started if this is your first Flutter project:
+## Installation
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Flutter installieren: [Flutter Installation](https://flutter.dev/docs/get-started/install)  
+2. Repository klonen:
+    git clone https://github.com/jennihedwig/rateflix.git
+    cd rateflix
+3. Datenbank starten
+    npm start
+4. App starten
