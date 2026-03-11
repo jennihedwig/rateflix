@@ -115,9 +115,13 @@ class _SearchViewState extends State<SearchView> {
 
                     return GestureDetector(
                       onTap: () {
+                        print('Full item: $item');
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                              builder: (_) => MediaDetailView(media: item)),
+                              builder: (_) => MediaDetailView(
+                                    mediaID: item['id'],
+                                    mediaType: item['media_type'],
+                                  )),
                         );
                       },
                       child: imagePath != null

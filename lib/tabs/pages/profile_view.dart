@@ -14,173 +14,132 @@ class ProfileView extends StatefulWidget {
 class ProfileViewState extends State<ProfileView> {
   final double doublePadding = 32.0;
   final double padding = 16.0;
-  final double innerPadding = 8.0;
 
-  UserService userService = UserService();
+  final UserService userService = UserService();
 
-  Map<String, dynamic>? userData; // ✅ hier speichern wir die Daten
+  Map<String, dynamic>? userData;
   bool isLoading = true;
+  bool isRatingsLoading = true;
+
+  /// 🔥 Ratings gruppiert nach DB-Category
+  Map<String, List<dynamic>> ratingsByCategory = {};
 
   @override
   void initState() {
     super.initState();
-    print('Init Stat ProfileView');
     loadUserData();
   }
 
+  // ---------------------------
+  // USERDATEN
+  // ---------------------------
   Future<void> loadUserData() async {
     try {
-      print('Starte loadUserData...');
       final userID = await userService.getUserID();
-      print('userID: $userID');
-
       if (userID == null) {
-        print('Kein UserID gefunden!');
-        setState(() {
-          isLoading = false;
-        });
+        setState(() => isLoading = false);
         return;
       }
 
       final data = await userService.getUserData(userID);
-      print('userData: $data');
 
       setState(() {
-        userData = data; // State aktualisieren
-        isLoading = false; // Loading ausblenden
+        userData = data;
+        isLoading = false;
       });
 
       await loadUserRatings();
     } catch (e) {
       print('Fehler beim Laden der User-Daten: $e');
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
 
+  // ---------------------------
+  // RATINGS → NACH CATEGORY GRUPPIEREN
+  // ---------------------------
   Future<void> loadUserRatings() async {
     try {
-      print('Starte loadUserRatings...');
-
       final userID = await userService.getUserID();
-      if (userID == null) {
-        print('Keine UserID gefunden – Ratings nicht geladen');
-        return;
-      }
+      if (userID == null) return;
 
       final ratings = await userService.getUserRatings(userID);
 
-      print('User Ratings (${ratings.length}):');
+      final Map<String, List<dynamic>> grouped = {};
+
       for (final rating in ratings) {
-        print('Rating: $rating');
+        final String category = (rating['category'] ?? 'Sonstiges').toString();
+
+        grouped.putIfAbsent(category, () => []);
+        grouped[category]!.add(rating);
       }
+
+      setState(() {
+        ratingsByCategory = grouped;
+        isRatingsLoading = false;
+      });
+
+      // Debug
+      grouped.forEach((cat, list) {
+        print('Kategorie "$cat": ${list.length} Filme');
+      });
     } catch (e) {
       print('Fehler beim Laden der Ratings: $e');
     }
   }
 
+  // ---------------------------
+  // POSTER (Platzhalter)
+  // ---------------------------
+  List<String> buildPosters(List<dynamic> ratings) {
+    return ratings.map((r) {
+      return "https://image.tmdb.org/t/p/w300_and_h450_bestv2/ooBGRQBdbGzBxAVfExiO8r7kloA.jpg";
+    }).toList();
+  }
+
+  // ---------------------------
+  // UI
+  // ---------------------------
   @override
   Widget build(BuildContext context) {
-    //final theme = Theme.of(context);
-
-    final List<String> topMovies = [
-      "https://image.tmdb.org/t/p/w300_and_h450_bestv2/ooBGRQBdbGzBxAVfExiO8r7kloA.jpg",
-      "https://image.tmdb.org/t/p/w130_and_h195_bestv2/keXRM5UccYbolBbvndx1hTWsOVi.jpg",
-      "https://image.tmdb.org/t/p/w116_and_h174_face/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg",
-      "https://image.tmdb.org/t/p/w116_and_h174_face/klL4yhwiU8aF4AuF5dCfJA9sRnS.jpg",
-      "https://image.tmdb.org/t/p/w116_and_h174_face/7J5sJONPZuyNH9SuLYi4XvVUujk.jpg",
-      "https://image.tmdb.org/t/p/w116_and_h174_face/b3vl6wV1W8PBezFfntKTrhrehCY.jpg",
-      "https://image.tmdb.org/t/p/w130_and_h195_bestv2/ekaa7YjGPTkFLcPhwWXTnARuCEU.jpg",
-      "https://image.tmdb.org/t/p/w130_and_h195_bestv2/ifo31fMWLmyOVpdak9K0kY4jldQ.jpg",
-      "https://image.tmdb.org/t/p/w116_and_h174_face/vQiryp6LioFxQThywxbC6TuoDjy.jpg",
-      "https://image.tmdb.org/t/p/w130_and_h195_bestv2/bJs8Y6T88NcgksxA8UaVl4YX8p8.jpg",
-    ];
-
     return SafeArea(
       child: Scaffold(
         body: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: isLoading
-              ? Center(child: CircularProgressIndicator()) // Loading
+              ? const Center(child: CircularProgressIndicator())
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    //Header
+                    // HEADER
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
+                        const CircleAvatar(
                           radius: 40,
                           backgroundImage:
                               AssetImage('assets/images/avatar.png'),
                         ),
-                        SizedBox(
-                          width: padding,
-                        ),
+                        SizedBox(width: padding),
                         Expanded(
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 userData?['username'] ?? 'No username',
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                              SizedBox(
-                                height: padding / 2,
-                              ),
+                              const SizedBox(height: 8),
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '35',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                      Text('Ratings'),
-                                    ],
-                                  ),
-                                  SizedBox(
-                                    width: doublePadding,
-                                  ),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '35',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                      Text('Follower'),
-                                    ],
-                                  ),
-                                  SizedBox(
-                                    width: doublePadding,
-                                  ),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '35',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                      Text('Friends'),
-                                    ],
-                                  ),
-                                  SizedBox(
-                                    width: padding,
-                                  )
+                                children: const [
+                                  _StatBlock(label: 'Ratings', value: '35'),
+                                  SizedBox(width: 32),
+                                  _StatBlock(label: 'Follower', value: '35'),
+                                  SizedBox(width: 32),
+                                  _StatBlock(label: 'Friends', value: '35'),
                                 ],
                               )
                             ],
@@ -188,16 +147,34 @@ class ProfileViewState extends State<ProfileView> {
                         )
                       ],
                     ),
+
                     SizedBox(height: doublePadding),
-                    // TOP 10 Scroll
-                    MediaScroll(
-                      title: 'Top 10 Filme',
-                      posters: topMovies,
-                      showRanking: true,
-                    )
+
+                    // SLIDER PRO CATEGORY
+                    Expanded(
+                      child: isRatingsLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : ListView(
+                              children: ratingsByCategory.entries.map((entry) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 32),
+                                  child: MediaScroll(
+                                    title: entry.key,
+                                    items: entry
+                                        .value, // 🔥 komplette Rating-Liste
+                                    showRanking: true,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                    ),
                   ],
                 ),
         ),
+
+        // FAB
         floatingActionButton: SizedBox(
           height: 48,
           width: 48,
@@ -205,18 +182,11 @@ class ProfileViewState extends State<ProfileView> {
             onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const SearchView()),
+                MaterialPageRoute(
+                  builder: (_) => const SearchView(),
+                ),
               );
             },
-            child: Center(
-              child: Text(
-                '+',
-                style: TextStyle(
-                  fontSize: 28,
-                  color: theme.colorScheme.onPrimary,
-                ),
-              ),
-            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.primaryColor,
               shape: RoundedRectangleBorder(
@@ -224,9 +194,37 @@ class ProfileViewState extends State<ProfileView> {
               ),
               padding: EdgeInsets.zero,
             ),
+            child: Text(
+              '+',
+              style: TextStyle(
+                fontSize: 28,
+                color: theme.colorScheme.onPrimary,
+              ),
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------
+// KLEINE HILFSKOMPONENTE
+// ---------------------------
+class _StatBlock extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatBlock({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text(label),
+      ],
     );
   }
 }

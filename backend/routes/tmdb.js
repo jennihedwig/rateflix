@@ -32,22 +32,34 @@ module.exports = (database) => {
     });
 
     // Beispiel: Details zu einem Film
-    router.get("/movie/:id", async (req, res) => {
+    router.get("/:type/:id", async (req, res) => {
+        const { type, id } = req.params;
+
+        if (!["movie", "tv"].includes(type)) {
+            return res.status(400).json({ error: "Ungültiger Medientyp" });
+        }
+
         try {
-            const { id } = req.params;
-            const response = await axios.get(`${TMDB_BASE_URL}/movie/${id}`, {
-                params: {
-                    api_key: process.env.TMDB_API_KEY,
-                    language: "de-DE",
-                },
-            });
+            const response = await axios.get(
+                `${TMDB_BASE_URL}/${type}/${id}`,
+                {
+                    params: {
+                        api_key: TMDB_API_KEY,
+                        language: "de-DE",
+                    },
+                }
+            );
 
             res.json(response.data);
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: "Fehler beim Laden der Filmdetails" });
+            console.error("TMDB Error:", error.response?.data || error.message);
+            res.status(500).json({
+                error: "Fehler beim Laden der Media-Details",
+            });
         }
     });
+
+
 
 
     return router;

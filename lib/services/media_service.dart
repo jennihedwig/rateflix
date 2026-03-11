@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class MediaService {
-  final String baseURL = 'http://192.168.178.80:3000/api';
+  final String baseURL = 'http://192.168.178.97:3000/api';
 
   Future<List<dynamic>> searchMedia(String query) async {
     final String url = '$baseURL/media/search/$query';
@@ -43,6 +43,23 @@ class MediaService {
       return res;
     } else {
       throw Exception('Failed to save rating');
+    }
+  }
+
+  Future<Map<String, dynamic>> getMediaDetails(
+    int mediaID,
+    String mediaType,
+  ) async {
+    final url = Uri.parse('$baseURL/media/$mediaType/$mediaID');
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception(
+        'Fehler beim Laden der Media-Details ($mediaType/$mediaID)',
+      );
     }
   }
 }

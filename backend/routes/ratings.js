@@ -11,29 +11,52 @@ module.exports = (database) => {
     router.post('/save-rating', (req, res, next) => {
         const data = req.body;
         console.log('Request body:', data);
-        let mediaID = data.mediaID;
-        let userID = data.userID;
-        let name = "not needed?";
-        let rating = data.rating;
-        let comment = "kommt noch";
-        let type = data.type;
-        let category = data.category;
-        let ranking = "not needed?";
 
+        const mediaID = data.mediaID;
+        const userID = data.userID;
+        const name = data.name;
+        const rating = data.rating;
+        const comment = "kommt noch";
+        const type = data.type;
+        const category = data.category;
+        const ranking = data.ranking; // Muss vom Frontend kommen
+        const imagePath = data.imagePath;
 
+        if (!ranking || !category || !userID) {
+            return res.status(400).json({ message: "Ranking, Kategorie oder User fehlt" });
+        }
 
-        const sql = `INSERT INTO ratings (mediaID, userID, name, rating, comment, type, category, ranking) VALUES ('${mediaID}', '${userID}', '${name}', '${rating}', '${comment}', '${type}', '${category}', '${ranking}')`;
-
-        database.query(sql, (error, result) => {
-            if (error) {
-                console.error('SQL Error:', error);
-                return res.status(500).json({ message: 'Database error', error });
+        // 1️⃣ Alle Rankings ab dem gewünschten Platz um 1 nach hinten verschieben
+        const updateSql = `
+            UPDATE ratings
+            SET ranking = ranking + 1
+            WHERE userID = ? AND category = ? AND ranking >= ?
+        `;
+        database.query(updateSql, [userID, category, ranking], (updateErr, updateResult) => {
+            if (updateErr) {
+                console.error('SQL Error beim Verschieben der Rankings:', updateErr);
+                return res.status(500).json({ message: 'Database error', error: updateErr });
             }
-            console.log('Rating successfully inserted:', result);
-            res.status(201).json({ message: 'Rating added successfully', userID: result.insertId });
-        });
 
+            // 2️⃣ Neues Rating einfügen
+            const insertSql = `
+                INSERT INTO ratings (mediaID, userID, name, rating, comment, type, category, ranking, imagePath)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+            const values = [mediaID, userID, name, rating, comment, type, category, ranking, imagePath];
+
+            database.query(insertSql, values, (insertErr, insertResult) => {
+                if (insertErr) {
+                    console.error('SQL Error beim Einfügen des Ratings:', insertErr);
+                    return res.status(500).json({ message: 'Database error', error: insertErr });
+                }
+
+                console.log('Rating successfully inserted:', insertResult);
+                res.status(201).json({ message: 'Rating added successfully', ratingID: insertResult.insertId });
+            });
+        });
     });
+
 
     router.get('/get-ratings', (req, res) => {
         const userID = req.query.userID;
@@ -46,7 +69,7 @@ module.exports = (database) => {
             });
         }
 
-        const sql = `SELECT * FROM ratings WHERE userID = ? `;
+        const sql = `SELECT * FROM ratings WHERE userID = ? ORDER BY ranking ASC`;
 
         database.query(sql, [userID], (error, results) => {
             if (error) {
